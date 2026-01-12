@@ -71,7 +71,6 @@ class JournalServiceLive: JournalService {
         return request
     }
     
-//    @Published private var token: AuthToken?
     @Published private(set) var token: AuthToken? = KeychainService.load()
     
     var isAuthenticated: AnyPublisher<Bool, Never> {
@@ -282,7 +281,7 @@ class JournalServiceLive: JournalService {
     }
 
     func createEvent(with request: EventCreate) async throws -> Event {
-        let requestData = try JSONEncoder().encode(request)
+        let requestData = try apiEncoder.encode(request)
         var request = try makeRequest(endpoint: "events", method: "POST", body: requestData)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -301,7 +300,7 @@ class JournalServiceLive: JournalService {
             print("Create event response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let event = try decoder.decode(Event.self, from: data)
+            let event = try apiDecoder.decode(Event.self, from: data)
             return event
         } catch {
             print("Failed to decode create event response: \(error)")
@@ -326,7 +325,7 @@ class JournalServiceLive: JournalService {
             print("Get events response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let events = try decoder.decode([Event].self, from: data)
+            let events = try apiDecoder.decode([Event].self, from: data)
             return events
         } catch {
             print("Failed to decode get events response: \(error)")
@@ -351,7 +350,7 @@ class JournalServiceLive: JournalService {
             print("Get event response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let event = try decoder.decode(Event.self, from: data)
+            let event = try apiDecoder.decode(Event.self, from: data)
             return event
         } catch {
             print("Failed to decode get event response: \(error)")
@@ -360,7 +359,7 @@ class JournalServiceLive: JournalService {
     }
 
     func updateEvent(withId eventId: Event.ID, and request: EventUpdate) async throws -> Event {
-        let requestData = try JSONEncoder().encode(request)
+        let requestData = try apiEncoder.encode(request)
         var request = try makeRequest(endpoint: "events/\(eventId)", method: "PUT", body: requestData)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -379,7 +378,7 @@ class JournalServiceLive: JournalService {
             print("Update event response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let event = try decoder.decode(Event.self, from: data)
+            let event = try apiDecoder.decode(Event.self, from: data)
             return event
         } catch {
             print("Failed to decode update event response: \(error)")
@@ -393,7 +392,7 @@ class JournalServiceLive: JournalService {
     }
 
     func createMedia(with request: MediaCreate) async throws -> Media {
-        let requestData = try JSONEncoder().encode(request)
+        let requestData = try apiEncoder.encode(request)
         var request = try makeRequest(endpoint: "media", method: "POST", body: requestData)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -403,8 +402,9 @@ class JournalServiceLive: JournalService {
             throw NetworkError.badResponse
         }
         
-        guard response.statusCode == 200 else {
+        guard (200...299).contains(response.statusCode) else {
             print("Create media failed with status code: \(response.statusCode)")
+            print("Server body:", String(data: data, encoding: .utf8) ?? "<non-utf8>")
             throw NetworkError.badResponse
         }
         
@@ -428,7 +428,7 @@ class JournalServiceLive: JournalService {
             throw NetworkError.badResponse
         }
         
-        guard response.statusCode == 200 else {
+        guard (200...299).contains(response.statusCode) else {
             print("Get media failed with status code: \(response.statusCode)")
             throw NetworkError.badResponse
         }
@@ -453,7 +453,7 @@ class JournalServiceLive: JournalService {
             throw NetworkError.badResponse
         }
         
-        guard response.statusCode == 200 else {
+        guard (200...299).contains(response.statusCode) else {
             print("Get media failed with status code: \(response.statusCode)")
             throw NetworkError.badResponse
         }
